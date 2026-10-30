@@ -18,12 +18,6 @@ import capacidades  # noqa: E402
 from config import settings  # noqa: E402
 
 
-@pytest.fixture(autouse=True)
-def base_temporal(tmp_path, monkeypatch):
-    """Cada prueba usa su propia gastos.db, no la de datos/."""
-    monkeypatch.setattr(capacidades, "DB", tmp_path / "gastos.db")
-
-
 def pide(tool: str, args: dict) -> FunctionModel:
     """Un modelo falso: la 1.ª vez pide la tool; cuando recibe su resultado, responde texto."""
 
@@ -36,27 +30,65 @@ def pide(tool: str, args: dict) -> FunctionModel:
     return FunctionModel(responder)
 
 
-def test_consultar_gastos_sin_modelo():
-    gastos = capacidades.consultar_gastos("transporte")  # una tool es una función normal
-    assert gastos["total_bs"] == 67
+def test_evaluar_mora_asfi_semaforos():
+    # Consumo: <= 5 días es Verde
+    verde = capacidades.evaluar_mora_asfi("consumo", 3)
+    assert verde["semaforo"] == "Verde"
+    assert "Categoría A" in verde["categoria_asfi"]
+
+    # Consumo: 15 días es Amarillo (Categoría B)
+    amarillo = capacidades.evaluar_mora_asfi("consumo", 15)
+    assert amarillo["semaforo"] == "Amarillo"
+    assert "Categoría B" in amarillo["categoria_asfi"]
+
+    # Vivienda: 100 días es Rojo (Categoría C)
+    rojo = capacidades.evaluar_mora_asfi("vivienda", 100)
+    assert rojo["semaforo"] == "Rojo"
+    assert "Categoría C" in rojo["categoria_asfi"]
+
+    # Empresarial: 20 días es Verde (Categoría A)
+    emp = capacidades.evaluar_mora_asfi("empresarial", 20)
+    assert emp["semaforo"] == "Verde"
+    assert "Categoría A" in emp["categoria_asfi"]
 
 
-async def test_registrar_gasto_escribe_en_la_base():
-    with asistente.asistente.override(model=pide("registrar_gasto", {
-        "fecha": "2030-05-14", "categoria": "ocio", "descripcion": "Teatro", "monto": 30,
+def test_evaluar_mora_asfi_dias_negativos():
+    error = capacidades.evaluar_mora_asfi("empresarial", -5)
+    assert "error" in error
+
+
+def test_consultar_derechos_prestatario_asfi():
+    cobranza = capacidades.consultar_derechos_prestatario_asfi("cobranza")
+    assert "ASFI" in cobranza["derechos"]
+    assert "Punto de Reclamo" in cobranza["accion"]
+
+    reprog = capacidades.consultar_derechos_prestatario_asfi("reprogramacion")
+    assert "reprogramación" in reprog["derechos"]
+
+
+async def test_asistente_evaluar_mora_con_modelo_falso():
+    with asistente.asistente.override(model=pide("evaluar_mora_asfi", {
+        "tipo_credito": "consumo", "dias_mora": 10,
     })):
-        respuesta = await asistente.responder("Anota 30 Bs de teatro.")
-    assert "Gasto registrado" in respuesta
-    assert capacidades.consultar_gastos("ocio")["total_bs"] == 70  # 40 del CSV + 30
+        respuesta = await asistente.responder("Tengo un crédito de consumo con 10 días de mora.")
+    assert "Resultado:" in respuesta
 
 
-async def test_monto_negativo_no_se_guarda():
-    with asistente.asistente.override(model=pide("registrar_gasto", {
-        "fecha": "2030-05-14", "categoria": "ocio", "descripcion": "Error", "monto": -5,
-    })):
-        respuesta = await asistente.responder("Anota -5 Bs.")
-    assert "No se guardó" in respuesta
-    assert capacidades.consultar_gastos("ocio")["total_bs"] == 40
+async def test_bot_inicio_envia_mensaje_bienvenida(monkeypatch):
+    monkeypatch.setattr(settings, "telegram_permitidos", "123")
+    respuestas = []
+
+    async def reply_text(texto):
+        respuestas.append(texto)
+
+    update = SimpleNamespace(
+        effective_chat=SimpleNamespace(id=123), message=SimpleNamespace(reply_text=reply_text)
+    )
+    await bot.inicio(update, None)
+    assert len(respuestas) == 1
+    assert "ASFI" in respuestas[0]
+    assert "Tipo de Crédito" in respuestas[0]
+    assert "Días de Mora" in respuestas[0]
 
 
 async def test_chat_ajeno_se_rechaza_sin_llamar_al_modelo(monkeypatch):

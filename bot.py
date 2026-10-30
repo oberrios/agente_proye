@@ -11,7 +11,7 @@ import os
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
 
-from asistente import responder
+from asistente import MENSAJE_BIENVENIDA, responder
 from config import settings
 
 TOKEN = settings.telegram_token.get_secret_value()
@@ -21,7 +21,7 @@ async def inicio(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """/start: lo primero que manda Telegram. Dice el número de chat para añadirlo a la lista."""
     chat = str(update.effective_chat.id)
     if chat in settings.permitidos:
-        await update.message.reply_text("¡Hola! Ya puedes escribirme.")
+        await update.message.reply_text(MENSAJE_BIENVENIDA)
     else:
         await update.message.reply_text(f"Tu número de chat es {chat}. Pídele al dueño del bot que lo añada.")
 
