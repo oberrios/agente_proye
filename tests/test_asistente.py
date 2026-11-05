@@ -57,6 +57,12 @@ def test_evaluar_mora_asfi_dias_negativos():
     assert "error" in error
 
 
+def test_evaluar_mora_asfi_credito_invalido():
+    error = capacidades.evaluar_mora_asfi("fantasma", 10)
+    assert "error" in error
+    assert "no existe" in error["error"]
+
+
 def test_consultar_derechos_prestatario_asfi():
     cobranza = capacidades.consultar_derechos_prestatario_asfi("cobranza")
     assert "ASFI" in cobranza["derechos"]

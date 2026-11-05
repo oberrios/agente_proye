@@ -52,15 +52,25 @@ asfi = Capability(
 
 
 @asfi.tool_plain
-def evaluar_mora_asfi(tipo_credito: TipoCredito, dias_mora: int) -> dict:
+def evaluar_mora_asfi(tipo_credito: str, dias_mora: int) -> dict:
     """Evalúa la situación crediticia bajo normativa de la ASFI validando con Pydantic.
 
     Args:
         tipo_credito: Tipo de crédito ('vivienda', 'consumo' o 'empresarial')
         dias_mora: Días de retraso acumulados en el pago de la cuota (0 si está al día)
     """
+    credito_normalizado = tipo_credito.lower().strip()
+    if credito_normalizado not in {"vivienda", "consumo", "empresarial"}:
+        return {
+            "error": (
+                f"El tipo de crédito '{tipo_credito}' no existe en la normativa oficial de la ASFI en Bolivia. "
+                "Las únicas modalidades reguladas son: 'consumo', 'vivienda' y 'empresarial'. "
+                "Por favor, solicita amablemente al usuario que elija una de estas tres opciones."
+            )
+        }
+
     try:
-        entrada = EntradaEvaluacionMora(tipo_credito=tipo_credito, dias_mora=dias_mora)
+        entrada = EntradaEvaluacionMora(tipo_credito=credito_normalizado, dias_mora=dias_mora)
     except Exception as error:
         return {"error": f"Validación de datos fallida: {error}"}
 

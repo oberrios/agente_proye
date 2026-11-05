@@ -36,7 +36,11 @@ async def mensaje(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         respuesta = await responder(update.message.text)
     except Exception as error:  # cuota agotada (429), una API caída…: se avisa en vez de quedarse callado
         print("Error:", repr(error)[:300], flush=True)  # el detalle, en la terminal o en los Logs de Render
-        respuesta = "Algo falló (el modelo o una herramienta). Intenta de nuevo en un minuto."
+        respuesta = (
+            "⚠️ No pude procesar tu consulta en este momento.\n\n"
+            "Por favor asegúrate de indicar tu Tipo de Crédito (Vivienda, Consumo o Empresarial) "
+            "y tus Días de Mora (por ejemplo: 'Tengo un crédito de consumo con 15 días de mora')."
+        )
 
     # Intentar enviar con formato Markdown; si falla por algún caracter especial, enviar como texto plano
     try:
