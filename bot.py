@@ -37,7 +37,12 @@ async def mensaje(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     except Exception as error:  # cuota agotada (429), una API caída…: se avisa en vez de quedarse callado
         print("Error:", repr(error)[:300], flush=True)  # el detalle, en la terminal o en los Logs de Render
         respuesta = "Algo falló (el modelo o una herramienta). Intenta de nuevo en un minuto."
-    await update.message.reply_text(respuesta[:4000])  # Telegram no acepta más de 4096 caracteres
+
+    # Intentar enviar con formato Markdown; si falla por algún caracter especial, enviar como texto plano
+    try:
+        await update.message.reply_text(respuesta[:4000], parse_mode="Markdown")
+    except Exception:
+        await update.message.reply_text(respuesta[:4000])
 
 
 def main() -> None:
