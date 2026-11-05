@@ -31,7 +31,7 @@ class Settings(BaseSettings):
 
     modo: Literal["gemini", "local"] = "gemini"  # gemini = la nube · local = Ollama (no funciona en Render)
     gemini_api_key_local: SecretStr  # obligatoria; SecretStr no se imprime por accidente
-    gemini_model: str = "gemini-3.5-flash-lite"
+    gemini_model: str = "gemini-3.1-flash-lite"
     ollama_model: str = "gemma4:e2b"
     telegram_token: SecretStr = SecretStr("")  # el token de @BotFather
     telegram_permitidos: str = ""  # números de chat separados por coma; vacío = nadie
